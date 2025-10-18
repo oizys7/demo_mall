@@ -1,0 +1,26 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: demo-mall-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: lb://demo-mall-user
+          predicates:
+            - Path=/api/user/**
+        - id: product-service
+          uri: lb://demo-mall-product
+          predicates:
+            - Path=/api/product/**
+        - id: order-service
+          uri: lb://demo-mall-order
+          predicates:
+            - Path=/api/order/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/

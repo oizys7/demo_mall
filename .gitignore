@@ -1,0 +1,197 @@
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs, see http://openjdk.java.net/groups/hotspot/docs/Serviceability.html#crashinfo
+hs_err_pid*
+
+# Eclipse
+*.pydevproject
+.project
+.metadata
+bin/**
+tmp/**
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+# External tool builders
+.externalToolBuilders/
+
+# Locally stored "Eclipse launch configurations"
+*.launch
+
+# PyDev specific (Python IDE for Eclipse)
+*.pyc
+.pydevproject
+
+# CDT-specific (C/C++ Development Tooling)
+.cproject
+
+# CMakeCache.txt is generated when using cmake to build a project
+CMakeCache.txt
+
+# Keystore files
+*.jks
+*.keystore
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+intellij.out/
+
+# JIRA plugin cache
+atlassian-ide-plugin.xml
+
+# Crashlytics plugin cache
+com_crashlytics_export_strings.xml
+crashlytics-build.properties
+
+# FindBugs plugin cache
+findbugsExcludeFile.xml
+
+# Gradle
+.gradle/
+build/
+
+# Build task specific
+.gradle/
+!**/src/main/**/.gradle/
+!**/src/test/**/.gradle/
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# SBT
+.hsenv
+*.sbt
+.project
+.target
+dist/*
+.cache
+
+# Scala IDE
+.scala_dependencies
+.worksheet
+
+# VS Code
+.vscode/
+
+# Mac OS X
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Thumbnails
+.Thumb*db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Temporary files
+*.tmp
+*.temp
+
+# Logs
+logs/
+*.log
+
+# Database
+*.sql
+*.db
+
+# Coverage
+coverage/
+*.ec
+*.exec
+
+# IDE
+*.idea/
+*.iml
+*.iws
+*.ipr
+.settings/
+.classpath
+.project
+.factorypath
+
+# OS generated files
+*.swp
+*.swo
+*~
+
+# Applications
+*.app
+*.exe
+*.dll
+*.so
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Backup files
+*.bak
+*.backup
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Docker
+docker-compose.override.yml
+
+# Log files
+*.log.*
+
+# Spring Boot
+*.jar.original
