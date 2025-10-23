@@ -1,0 +1,28 @@
+# Development环境配置 - 启用ddl-auto
+jpa:
+  hibernate:
+    ddl-auto: update  # 开发环境启用自动更新表结构
+  show-sql: true
+  properties:
+    hibernate:
+      format_sql: true
+      dialect: org.hibernate.dialect.PostgreSQLDialect
+  database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+# SpringDoc OpenAPI 配置
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  info:
+    title: Demo Mall Order Service API (Development)
+    description: 订单管理服务的 API 文档 - 开发环境
+    version: 1.0.0
+    contact:
+      name: Demo Mall Team
+      email: support@demo-mall.com
