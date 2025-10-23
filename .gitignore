@@ -195,4 +195,3 @@ docker-compose.override.yml
 
 # Spring Boot
 *.jar.original
-/CLAUDE.md
