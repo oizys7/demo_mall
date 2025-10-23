@@ -1,9 +1,7 @@
 package com.oizys.mall.user.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.oizys.mall.user.entity.User;
-import org.apache.ibatis.annotations.Mapper;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-@Mapper
-public interface UserMapper extends BaseMapper<User> {
+public interface UserMapper extends JpaRepository<User, Long> {
 }

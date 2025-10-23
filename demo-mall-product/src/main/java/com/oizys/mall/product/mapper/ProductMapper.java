@@ -1,9 +1,7 @@
 package com.oizys.mall.product.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.oizys.mall.product.entity.Product;
-import org.apache.ibatis.annotations.Mapper;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-@Mapper
-public interface ProductMapper extends BaseMapper<Product> {
+public interface ProductMapper extends JpaRepository<Product, Long> {
 }

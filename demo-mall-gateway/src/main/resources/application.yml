@@ -1,10 +1,15 @@
 server:
-  port: 9000
+  port: 9100
 
 spring:
   application:
     name: demo-mall-gateway
   cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: public
+        group: DEFAULT_GROUP
     gateway:
       routes:
         - id: user-service
@@ -19,8 +24,5 @@ spring:
           uri: lb://demo-mall-order
           predicates:
             - Path=/api/order/**
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
+  profiles:
+    active: @profile.active@  # 使用Maven profile变量
