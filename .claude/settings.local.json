@@ -1,7 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mvn clean compile:*)"
+      "Bash(mvn clean compile:*)",
+      "Bash(chmod:*)",
+      "Bash(docker:*)",
+      "Bash(mvn:*)",
+      "Bash(ping:*)",
+      "Bash(docker-compose:*)",
+      "Bash(./scripts/common/cross-platform-build.sh:*)",
+      "Bash(./scripts/common/check-env.sh:*)",
+      "Bash(bash:*)",
+      "Bash(./scripts/common/cross-platform-build-test.sh:*)",
+      "Bash(./scripts/common/health-check.sh:*)",
+      "Bash(./scripts/common/size-report.sh:*)",
+      "Bash(./scripts/common/size-report-test.sh:*)",
+      "Bash(./scripts/ubuntu/deploy.sh:*)",
+      "Bash(./scripts/ubuntu/build-images.sh:*)"
     ],
     "deny": [],
     "ask": []

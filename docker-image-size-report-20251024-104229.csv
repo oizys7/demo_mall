@@ -1,0 +1,6 @@
+镜像名称,版本,原始大小,创建时间
+<none>,<none>,433MB,2025-10-23 14:32:14 +0800 CST
+postgres,latest,643MB,2025-10-16 02:23:03 +0800 CST
+redis,latest,200MB,2025-10-03 20:18:48 +0800 CST
+docker.elastic.co/elasticsearch/elasticsearch-wolfi,9.1.5,2.11GB,2025-10-03 06:15:52 +0800 CST
+registry.cn-hangzhou.aliyuncs.com/ossrs/srs,6,227MB,2025-08-12 22:46:59 +0800 CST

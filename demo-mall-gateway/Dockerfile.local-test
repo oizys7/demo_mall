@@ -1,0 +1,9 @@
+# 本地测试Dockerfile - 不依赖外部镜像
+FROM hello-world
+
+# 添加测试标签
+LABEL description="Demo Mall Gateway Docker Build Test"
+LABEL version="1.0.0-test"
+
+# 这个Dockerfile只是用来验证Docker构建功能是否正常
+CMD ["echo", "Docker build functionality test passed!"]

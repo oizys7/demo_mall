@@ -30,8 +30,12 @@
         <springdoc.version>2.5.0</springdoc.version>
         <postgresql.version>42.7.4</postgresql.version>
         <jpa.version>2.7.14</jpa.version>
+        <redis.version>3.3.4</redis.version>
+        <elasticsearch.version>9.1.5</elasticsearch.version>
 
         <common.version>1.0.0</common.version>
+        <docker.maven.plugin.version>0.44.0</docker.maven.plugin.version>
+        <docker.image.prefix>demo-mall</docker.image.prefix>
     </properties>
 
     <dependencyManagement>
@@ -97,6 +101,39 @@
                 <version>${postgresql.version}</version>
             </dependency>
 
+            <!-- Spring Data Redis -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-data-redis</artifactId>
+                <version>${spring.boot.version}</version>
+            </dependency>
+
+            <!-- Spring Data Elasticsearch -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+                <version>${spring.boot.version}</version>
+            </dependency>
+
+            <!-- Elasticsearch High Level REST Client -->
+            <dependency>
+                <groupId>co.elastic.clients</groupId>
+                <artifactId>elasticsearch-java</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+            </dependency>
+
+            <!-- Docker Maven Plugin -->
+            <dependency>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <version>${docker.maven.plugin.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -130,6 +167,8 @@
                 <configuration>
                     <source>21</source>
                     <target>21</target>
+                    <!-- 优化编译 -->
+                    <optimize>true</optimize>
                 </configuration>
             </plugin>
             <plugin>
@@ -140,6 +179,12 @@
                     <profiles>
                         <profile>${profile.active}</profile>
                     </profiles>
+                    <!-- 启用分层打包以优化 Docker 镜像大小 -->
+                    <layers>
+                        <enabled>true</enabled>
+                    </layers>
+                    <!-- 排除开发依赖 -->
+                    <excludeDevtools>true</excludeDevtools>
                 </configuration>
             </plugin>
         </plugins>

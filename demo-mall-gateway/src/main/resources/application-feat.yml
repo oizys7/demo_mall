@@ -11,11 +11,11 @@ springdoc:
     operations-sorter: alpha
     urls:
       - name: User Service API
-        url: http://localhost:9201/v3/api-docs
+        url: /v3/api-docs/demo-mall-user
       - name: Product Service API
-        url: http://localhost:9202/v3/api-docs
+        url: /v3/api-docs/demo-mall-product
       - name: Order Service API
-        url: http://localhost:9203/v3/api-docs
+        url: /v3/api-docs/demo-mall-order
   info:
     title: Demo Mall Gateway API
     description: Demo Mall 网关聚合 API 文档

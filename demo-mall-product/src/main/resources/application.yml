@@ -12,8 +12,8 @@ spring:
         group: DEFAULT_GROUP
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://120.26.203.218:5432/demo_mall_product?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    url: jdbc:postgresql://localhost:5432/demo_mall_product?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
     username: oizys
-    password: ${PGSQL_PASSWD}
+    password: postgres123
   profiles:
     active: @profile.active@  # 使用Maven profile变量

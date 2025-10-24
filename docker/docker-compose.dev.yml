@@ -1,0 +1,217 @@
+version: '3.8'
+
+# Windows Docker Desktop 开发环境配置
+services:
+  # 基础设施服务（继承现有配置）
+  postgres:
+    extends:
+      file: ../docker-compose.yml
+      service: postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  redis:
+    extends:
+      file: ../docker-compose.yml
+      service: redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+
+  elasticsearch:
+    extends:
+      file: ../docker-compose.yml
+      service: elasticsearch
+    ports:
+      - "${ELASTICSEARCH_PORT}:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
+  kibana:
+    extends:
+      file: ../docker-compose.yml
+      service: kibana
+    ports:
+      - "5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  # Nacos 服务注册中心
+  nacos:
+    image: nacos/nacos-server:v2.3.2
+    container_name: demo-mall-nacos
+    restart: always
+    environment:
+      - MODE=standalone
+      - SPRING_DATASOURCE_PLATFORM=embedded
+      - PREFER_HOST_MODE=hostname
+      - JVM_XMS=256m
+      - JVM_XMX=256m
+    ports:
+      - "${NACOS_PORT}:8848"
+      - "9848:9848"
+    volumes:
+      - nacos_data:/home/nacos/data
+    networks:
+      - demo-mall-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # 微服务配置
+
+  # API 网关服务
+  demo-mall-gateway:
+    build:
+      context: ../demo-mall-gateway
+      dockerfile: Dockerfile.dev
+    container_name: demo-mall-gateway
+    restart: unless-stopped
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - JAVA_OPTS=${JAVA_OPTS}
+      - NACOS_SERVER_ADDR=nacos:8848
+    ports:
+      - "${GATEWAY_PORT}:9100"
+    volumes:
+      # 开发环境配置文件热重载
+      - ../demo-mall-gateway/src/main/resources:/app/resources
+    depends_on:
+      - nacos
+      - redis
+    networks:
+      - demo-mall-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9100/actuator/health"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+
+  # 用户管理服务
+  demo-mall-user:
+    build:
+      context: ../demo-mall-user
+      dockerfile: Dockerfile.dev
+    container_name: demo-mall-user
+    restart: unless-stopped
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - JAVA_OPTS=${JAVA_OPTS}
+      - NACOS_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/demo_mall_user
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
+    ports:
+      - "${USER_SERVICE_PORT}:9201"
+    volumes:
+      - ../demo-mall-user/src/main/resources:/app/resources
+    depends_on:
+      - nacos
+      - postgres
+      - redis
+    networks:
+      - demo-mall-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9201/actuator/health"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+
+  # 商品管理服务
+  demo-mall-product:
+    build:
+      context: ../demo-mall-product
+      dockerfile: Dockerfile.dev
+    container_name: demo-mall-product
+    restart: unless-stopped
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - JAVA_OPTS=${JAVA_OPTS}
+      - NACOS_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/demo_mall_product
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
+      - SPRING_ELASTICSEARCH_REST_URIS=http://${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}
+    ports:
+      - "${PRODUCT_SERVICE_PORT}:9202"
+    volumes:
+      - ../demo-mall-product/src/main/resources:/app/resources
+    depends_on:
+      - nacos
+      - postgres
+      - redis
+      - elasticsearch
+    networks:
+      - demo-mall-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9202/actuator/health"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+
+  # 订单管理服务
+  demo-mall-order:
+    build:
+      context: ../demo-mall-order
+      dockerfile: Dockerfile.dev
+    container_name: demo-mall-order
+    restart: unless-stopped
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - JAVA_OPTS=${JAVA_OPTS}
+      - NACOS_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/demo_mall_order
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
+      - SPRING_ELASTICSEARCH_REST_URIS=http://${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}
+    ports:
+      - "${ORDER_SERVICE_PORT}:9203"
+    volumes:
+      - ../demo-mall-order/src/main/resources:/app/resources
+    depends_on:
+      - nacos
+      - postgres
+      - redis
+      - elasticsearch
+    networks:
+      - demo-mall-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9203/actuator/health"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  es_data:
+    driver: local
+  nacos_data:
+    driver: local
+
+networks:
+  demo-mall-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

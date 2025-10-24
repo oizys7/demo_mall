@@ -1,0 +1,337 @@
+version: '3.8'
+
+# Ubuntu 生产环境配置
+services:
+  # 基础设施服务
+  postgres:
+    image: postgres:latest
+    container_name: demo-mall-postgres
+    restart: ${DEFAULT_RESTART_POLICY}
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - ${VOLUME_SOURCE_BASE}/postgres:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - demo-mall-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+    logging:
+      driver: ${LOG_DRIVER}
+      options:
+        max-size: ${LOG_MAX_SIZE}
+        max-file: ${LOG_MAX_FILE}
+
+  redis:
+    image: redis:latest
+    container_name: demo-mall-redis
+    restart: ${DEFAULT_RESTART_POLICY}
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - ${VOLUME_SOURCE_BASE}/redis:/data
+    networks:
+      - demo-mall-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+    logging:
+      driver: ${LOG_DRIVER}
+      options:
+        max-size: ${LOG_MAX_SIZE}
+        max-file: ${LOG_MAX_FILE}
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.1.5
+    container_name: demo-mall-elasticsearch
+    restart: ${DEFAULT_RESTART_POLICY}
+    environment:
+      - node.name=es01
+      - cluster.name=demo-mall-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "${ELASTICSEARCH_PORT}:9200"
+      - "9300:9300"
+    volumes:
+      - ${VOLUME_SOURCE_BASE}/elasticsearch:/usr/share/elasticsearch/data
+    networks:
+      - demo-mall-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+    logging:
+      driver: ${LOG_DRIVER}
+      options:
+        max-size: ${LOG_MAX_SIZE}
+        max-file: ${LOG_MAX_FILE}
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.1.5
+    container_name: demo-mall-kibana
+    restart: ${DEFAULT_RESTART_POLICY}
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - XPACK_SECURITY_ENABLED=false
+    ports:
+      - "5601:5601"
+    networks:
+      - demo-mall-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    logging:
+      driver: ${LOG_DRIVER}
+      options:
+        max-size: ${LOG_MAX_SIZE}
+        max-file: ${LOG_MAX_FILE}
+
+  nacos:
+    image: nacos/nacos-server:v2.3.2
+    container_name: demo-mall-nacos
+    restart: ${DEFAULT_RESTART_POLICY}
+    environment:
+      - MODE=standalone
+      - SPRING_DATASOURCE_PLATFORM=embedded
+      - PREFER_HOST_MODE=hostname
+      - JVM_XMS=256m
+      - JVM_XMX=256m
+    ports:
+      - "${NACOS_PORT}:8848"
+      - "9848:9848"
+    volumes:
+      - ${VOLUME_SOURCE_BASE}/nacos:/home/nacos/data
+    networks:
+      - demo-mall-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+    logging:
+      driver: ${LOG_DRIVER}
+      options:
+        max-size: ${LOG_MAX_SIZE}
+        max-file: ${LOG_MAX_FILE}
+
+  # 微服务配置
+
+  # API 网关服务
+  demo-mall-gateway:
+    image: ${DOCKER_REGISTRY_PREFIX}/gateway:${APP_VERSION}
+    container_name: demo-mall-gateway
+    restart: ${DEFAULT_RESTART_POLICY}
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - JAVA_OPTS=${JAVA_OPTS}
+      - NACOS_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].ID=user-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].URI=lb://demo-mall-user
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].PATHS=/api/user/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].ID=product-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].URI=lb://demo-mall-product
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].PATHS=/api/product/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[2].ID=order-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[2].URI=lb://demo-mall-order
+      - SPRING_CLOUD_GATEWAY_ROUTES[2].PATHS=/api/order/**
+    ports:
+      - "${GATEWAY_PORT}:9100"
+    depends_on:
+      - nacos
+      - redis
+    networks:
+      - demo-mall-network
+    deploy:
+      resources:
+        limits:
+          memory: ${DEFAULT_MEMORY_LIMIT}
+          cpus: ${DEFAULT_CPU_LIMIT}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9100/actuator/health"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+    logging:
+      driver: ${LOG_DRIVER}
+      options:
+        max-size: ${LOG_MAX_SIZE}
+        max-file: ${LOG_MAX_FILE}
+
+  # 用户管理服务
+  demo-mall-user:
+    image: ${DOCKER_REGISTRY_PREFIX}/user:${APP_VERSION}
+    container_name: demo-mall-user
+    restart: ${DEFAULT_RESTART_POLICY}
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - JAVA_OPTS=${JAVA_OPTS}
+      - NACOS_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/demo_mall_user
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
+    ports:
+      - "${USER_SERVICE_PORT}:9201"
+    depends_on:
+      - nacos
+      - postgres
+      - redis
+    networks:
+      - demo-mall-network
+    deploy:
+      resources:
+        limits:
+          memory: ${DEFAULT_MEMORY_LIMIT}
+          cpus: ${DEFAULT_CPU_LIMIT}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9201/actuator/health"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+    logging:
+      driver: ${LOG_DRIVER}
+      options:
+        max-size: ${LOG_MAX_SIZE}
+        max-file: ${LOG_MAX_FILE}
+
+  # 商品管理服务
+  demo-mall-product:
+    image: ${DOCKER_REGISTRY_PREFIX}/product:${APP_VERSION}
+    container_name: demo-mall-product
+    restart: ${DEFAULT_RESTART_POLICY}
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - JAVA_OPTS=${JAVA_OPTS}
+      - NACOS_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/demo_mall_product
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
+      - SPRING_ELASTICSEARCH_REST_URIS=http://${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}
+    ports:
+      - "${PRODUCT_SERVICE_PORT}:9202"
+    depends_on:
+      - nacos
+      - postgres
+      - redis
+      - elasticsearch
+    networks:
+      - demo-mall-network
+    deploy:
+      resources:
+        limits:
+          memory: ${DEFAULT_MEMORY_LIMIT}
+          cpus: ${DEFAULT_CPU_LIMIT}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9202/actuator/health"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+    logging:
+      driver: ${LOG_DRIVER}
+      options:
+        max-size: ${LOG_MAX_SIZE}
+        max-file: ${LOG_MAX_FILE}
+
+  # 订单管理服务
+  demo-mall-order:
+    image: ${DOCKER_REGISTRY_PREFIX}/order:${APP_VERSION}
+    container_name: demo-mall-order
+    restart: ${DEFAULT_RESTART_POLICY}
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - JAVA_OPTS=${JAVA_OPTS}
+      - NACOS_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/demo_mall_order
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
+      - SPRING_ELASTICSEARCH_REST_URIS=http://${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}
+    ports:
+      - "${ORDER_SERVICE_PORT}:9203"
+    depends_on:
+      - nacos
+      - postgres
+      - redis
+      - elasticsearch
+    networks:
+      - demo-mall-network
+    deploy:
+      resources:
+        limits:
+          memory: ${DEFAULT_MEMORY_LIMIT}
+          cpus: ${DEFAULT_CPU_LIMIT}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9203/actuator/health"]
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+    logging:
+      driver: ${LOG_DRIVER}
+      options:
+        max-size: ${LOG_MAX_SIZE}
+        max-file: ${LOG_MAX_FILE}
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  es_data:
+    driver: local
+  nacos_data:
+    driver: local
+
+networks:
+  demo-mall-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -1,13 +1,31 @@
 # Development环境配置 - 启用ddl-auto
-jpa:
-  hibernate:
-    ddl-auto: update  # 开发环境启用自动更新表结构
-  show-sql: true
-  properties:
+spring:
+  jpa:
     hibernate:
-      format_sql: true
-      dialect: org.hibernate.dialect.PostgreSQLDialect
-  database-platform: org.hibernate.dialect.PostgreSQLDialect
+      ddl-auto: update  # 开发环境启用自动更新表结构
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  # Redis 配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  # Elasticsearch 配置
+  elasticsearch:
+    rest:
+      uris: http://localhost:9200
+      connection-timeout: 5s
+      read-timeout: 30s
 
 # SpringDoc OpenAPI 配置
 springdoc:
